@@ -5,7 +5,7 @@
   vars:
     #--- НАСТРОЙКИ КОМАНДЫ ---
     group_code: "03"
-    repo_url: "https://github.com/ВАШ_АККАУНТ/ВАШ_РЕПОЗИТОРИЙ.git"
+    repo_url: "https://github.com/sasha4329/devops-practice.git"
     repo_branch: "main"
     db_password: "password123"
 
