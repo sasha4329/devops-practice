@@ -1,0 +1,51 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: project_03-db
+    environment:
+      POSTGRES_DB: "notes_db_03"
+      POSTGRES_USER: "notes_user_03"
+      POSTGRES_PASSWORD: "password123"
+    volumes:
+      - pgdata_03:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5403:5432" # внешний порт 54GG -> 5403
+    networks:
+      - project_03-network
+
+  backend:
+    build:
+      context: ./backend
+    container_name: project_03-backend
+    environment:
+      DB_HOST: db
+      DB_NAME: "notes_db_03"
+      DB_USER: "notes_user_03"
+      DB_PASS: "password123"
+    ports:
+      - "5003:5000" # внешний порт 50GG -> 5003
+    depends_on:
+      - db
+    networks:
+      - project_03-network
+
+  nginx:
+    image: nginx:alpine
+    container_name: project_03-nginx
+    ports:
+      - "8003:80" # внешний порт 80GG -> 8003
+    volumes:
+      - ./frontend:/usr/share/nginx/html
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - backend
+    networks:
+      - project_03-network
+
+volumes:
+  pgdata_03:
+
+networks:
+  project_03-network:
+    name: project_03-network
