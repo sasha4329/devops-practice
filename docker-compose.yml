@@ -71,4 +71,3 @@ volumes:
 networks:
   project_03-network:
     name: project_03-network
-EOF
