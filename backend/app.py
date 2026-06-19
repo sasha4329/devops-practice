@@ -1,50 +1,35 @@
-import os
-from flask import Flask, jsonify, request
-from flask_cors import CORS
-import psycopg2
+{\rtf1\ansi\ansicpg1251\cocoartf2822
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
 
-app = Flask(__name__)
-CORS(app)
-
-# Настройки подключения динамически считываются из окружения или используют дефолты
-DB_HOST = os.getenv("DB_HOST", "localhost")
-DB_NAME = os.getenv("DB_NAME", "notes_db_03")
-DB_USER = os.getenv("DB_USER", "notes_user_03")
-DB_PASS = os.getenv("DB_PASS", "password123")
-
-def get_db_connection():
-    return psycopg2.connect(host=DB_HOST, database=DB_NAME, user=DB_USER, password=DB_PASS)
-
-@app.route('/api/notes', methods=['GET'])
-def get_notes():
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute('SELECT id, title, content FROM notes ORDER BY id DESC;')
-        notes = cur.fetchall()
-        cur.close()
-        conn.close()
-        return jsonify([{"id": n[0], "title": n[1], "content": n[2]} for n in notes]), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/api/notes', methods=['POST'])
-def add_note():
-    data = request.json
-    if not data or 'title' not in data or 'content' not in data:
-        return jsonify({"error": "Bad Request"}), 400
-
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute('INSERT INTO notes (title, content) VALUES (%s, %s) RETURNING id;', (data['title'], data['content']))
-        note_id = cur.fetchone()[0]
-        conn.commit()
-        cur.close()
-        conn.close()
-        return jsonify({"id": note_id, "title": data['title'], "content": data['content']}), 201
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+\f0\fs24 \cf0 from flask import Flask, jsonify\
+from flask_cors import CORS\
+import os\
+\
+app = Flask(__name__)\
+CORS(app)\
+\
+USER = os.environ.get("STUDENT_ID", "XX")\
+\
+@app.route("/api/hello", methods=["GET"])\
+def hello():\
+    return jsonify(\{\
+        "message": f"Hello from student red\{USER\}!",\
+        "student": f"red\{USER\}",\
+        "status": "ok"\
+    \})\
+\
+@app.route("/api/health", methods=["GET"])\
+def health():\
+    return jsonify(\{"status": "healthy"\})\
+\
+@app.route('/api/health', methods=['GET'])\
+def health_check():\
+    # \uc0\u1051 \u1077 \u1075 \u1082 \u1086 \u1074 \u1077 \u1089 \u1085 \u1099 \u1081  \u1101 \u1085 \u1076 \u1087 \u1086 \u1080 \u1085 \u1090  \u1076 \u1083 \u1103  \u1087 \u1088 \u1086 \u1074 \u1077 \u1088 \u1082 \u1080  \u1089 \u1090 \u1072 \u1090 \u1091 \u1089 \u1072  \u1089 \u1072 \u1084 \u1086 \u1075 \u1086  Flask-\u1087 \u1088 \u1080 \u1083 \u1086 \u1078 \u1077 \u1085 \u1080 \u1103 \
+    return jsonify(\{"status": "healthy"\}), 200\
+\
+if __name__ == "__main__":\
+    app.run(host="0.0.0.0", port=5000)}

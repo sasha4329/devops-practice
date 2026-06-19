@@ -1,28 +1,56 @@
 pipeline {
     agent any
-
     triggers {
-        // Опрашивать GitHub на наличие новых коммитов каждую минуту
-        pollSCM('* * * * *')
+        pollSCM('*/5 * * * *') 
     }
-
     stages {
         stage('Checkout Code') {
             steps {
-                // Очищаем рабочую директорию перед сборкой
                 cleanWs()
-                // Скачиваем актуальный код из Git
                 checkout scm
             }
         }
-
+        stage('Pre-Build: Unit Tests') {
+            steps {
+                echo 'Запуск изолированных юнит-тестов исходного кода Python...'
+                
+                sh '''
+                python3 -m venv test_venv
+                ./test_venv/bin/pip install -r backend/requirements.txt
+                ./test_venv/bin/python backend/test_app.py
+                '''
+            }
+        }
         stage('Docker Deploy') {
             steps {
-
-                echo 'Перезапускаем контейнеры команды project_03...'
-                // Явно указываем имя проекта через -p, чтобы перетереть прошлый деплой
+                echo 'Юнит-тесты успешно пройдены. Запуск сборки и деплоя контейнеров...'
                 sh 'docker compose -p project_03 down'
                 sh 'docker compose -p project_03 up -d --build'
+            }
+        }
+        stage('Post-Build: Smoke Tests') {
+            steps {
+                echo 'Контейнеры развернуты. Ожидание инициализации веб-серверов...'
+                sleep 5
+                echo 'Тестирование доступности статического фронтенда Nginx на внешнем порту...'
+                sh '''
+                STATUS_CODE=\$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8003/)
+                echo "Frontend HTTP Status Code: \$STATUS_CODE"
+                if [ "\$STATUS_CODE" -ne 200 ]; then
+                    echo "АВАРИЯ: Фронтенд вернул код \$STATUS_CODE вместо ожидаемого 200!"
+                    exit 1
+                fi
+                '''
+                echo 'Тестирование сквозного проксирования Nginx -> Backend API...'
+                sh '''
+                API_CODE=\$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8003/api/health)
+                echo "Backend API HTTP Status Code: \$API_CODE"
+                if [ "\$API_CODE" -ne 200 ]; then
+                    echo "АВАРИЯ: Эндпоинт здоровья недоступен через Nginx (Код: \$API_CODE)!"
+                    exit 1
+                fi
+                '''
+                echo 'Все автоматические проверки качества успешно завершены! Сборка валидна.'
             }
         }
     }
