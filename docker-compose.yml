@@ -10,7 +10,7 @@ services:
       - pgdata_03:/var/lib/postgresql/data
       - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
-      - "5403:5432" # внешний порт 54GG -> 5403
+      - "5403:5432"
     networks:
       - project_03-network
 
@@ -24,7 +24,7 @@ services:
       DB_USER: "notes_user_03"
       DB_PASS: "password123"
     ports:
-      - "5003:5000" # внешний порт 50GG -> 5003
+      - "5003:5000"
     depends_on:
       - db
     networks:
@@ -34,12 +34,34 @@ services:
     image: nginx:alpine
     container_name: project_03-nginx
     ports:
-      - "8003:80" # внешний порт 80GG -> 8003
+      - "8003:80"
     volumes:
       - ./frontend:/usr/share/nginx/html
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
     depends_on:
       - backend
+    networks:
+      - project_03-network
+
+  prometheus:
+    image: prom/prometheus:v2.45.0
+    container_name: project_03-prometheus
+    volumes:
+      - ./prometheus:/etc/prometheus
+    ports:
+      - "9003:9090"
+    depends_on:
+      - backend
+    networks:
+      - project_03-network
+
+  grafana:
+    image: grafana/grafana:10.0.0
+    container_name: project_03-grafana
+    ports:
+      - "3003:3000"
+    depends_on:
+      - prometheus
     networks:
       - project_03-network
 
@@ -49,3 +71,4 @@ volumes:
 networks:
   project_03-network:
     name: project_03-network
+EOF
