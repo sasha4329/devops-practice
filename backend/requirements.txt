@@ -1,3 +1,5 @@
 Flask==3.0.2
 psycopg2-binary==2.9.9
-flask-cors==4.0.0
+flask-cors==4.0.0prometheus-flask-exporter==0.23.0
+prometheus-flask-exporter==0.23.0
+prometheus-flask-exporter==0.23.0

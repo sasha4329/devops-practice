@@ -1,9 +1,15 @@
 from flask import Flask, jsonify
 from flask_cors import CORS
 import os
+import psycopg2
+from prometheus_flask_exporter import PrometheusMetrics
 
 app = Flask(__name__)
 CORS(app)
+
+# 1. Инициализация метрик Prometheus
+metrics = PrometheusMetrics(app, path='/api/metrics')
+metrics.info('app_info', 'Application info', version='1.0.0')
 
 USER = os.environ.get("STUDENT_ID", "XX")
 
@@ -15,14 +21,10 @@ def hello():
         "status": "ok"
     })
 
-@app.route("/api/health", methods=["GET"])
-def health():
-    return jsonify({"status": "healthy"})
-
+# 2. Правильный и готовый эндпоинт здоровья для ворот качества
 @app.route('/api/health', methods=['GET'])
-def health_check():
-    # Легковесный эндпоинт для проверки статуса самого Flask-приложения
+def health():
     return jsonify({"status": "healthy"}), 200
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
