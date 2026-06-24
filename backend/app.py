@@ -1,94 +1,92 @@
 import os
-import psycopg2
 from flask import Flask, jsonify, request
 from flask_cors import CORS
+import psycopg2
+from prometheus_flask_exporter import PrometheusMetrics
 
 app = Flask(__name__)
+metrics = PrometheusMetrics(app, path='/api/metrics')
+metrics.info('app_info', 'Application info', version='1.0.0')
 CORS(app)
+
+DB_HOST = os.getenv("DB_HOST", "localhost")
+DB_NAME = os.getenv("DB_NAME", "notes_db_03")
+DB_USER = os.getenv("DB_USER", "notes_user_03")
+DB_PASS = os.getenv("DB_PASS", "password123")
 
 
 def get_db_connection():
     return psycopg2.connect(
-        host=os.environ.get("DB_HOST", "db"),
-        database=os.environ.get("DB_NAME", "notes_db_03"),
-        user=os.environ.get("DB_USER", "notes_user_03"),
-        password=os.environ.get("DB_PASS", "password123")
+        host=DB_HOST,
+        database=DB_NAME,
+        user=DB_USER,
+        password=DB_PASS
     )
 
 
-@app.route("/api/health", methods=["GET"])
-def health():
-    return jsonify({"status": "ok"})
-
-
-@app.route("/api/hello", methods=["GET"])
-def hello():
-    return jsonify({"message": "Hello from backend"})
-
-
-@app.route("/api/metrics", methods=["GET"])
-def metrics():
-    return jsonify({
-        "service": "notes-backend",
-        "status": "running"
-    })
-
-
-@app.route("/api/notes", methods=["GET"])
+@app.route('/api/notes', methods=['GET'])
 def get_notes():
     try:
         conn = get_db_connection()
         cur = conn.cursor()
 
-        cur.execute("SELECT id, title, content FROM notes ORDER BY id DESC;")
-        rows = cur.fetchall()
+        cur.execute(
+            'SELECT id, title, content FROM notes ORDER BY id DESC;'
+        )
+
+        notes = cur.fetchall()
 
         cur.close()
         conn.close()
 
-        notes = [
+        return jsonify([
             {
-                "id": row[0],
-                "title": row[1],
-                "content": row[2]
+                "id": n[0],
+                "title": n[1],
+                "content": n[2]
             }
-            for row in rows
-        ]
-
-        return jsonify(notes)
+            for n in notes
+        ]), 200
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 
-@app.route("/api/notes", methods=["POST"])
-def create_note():
+@app.route('/api/notes', methods=['POST'])
+def add_note():
+    data = request.json
+
+    if not data or 'title' not in data or 'content' not in data:
+        return jsonify({"error": "Bad Request"}), 400
+
     try:
-        data = request.get_json()
-
-        title = data.get("title")
-        content = data.get("content")
-
-        if not title or not content:
-            return jsonify({"error": "title and content are required"}), 400
-
         conn = get_db_connection()
         cur = conn.cursor()
 
         cur.execute(
-            "INSERT INTO notes (title, content) VALUES (%s, %s);",
-            (title, content)
+            'INSERT INTO notes (title, content) VALUES (%s, %s) RETURNING id;',
+            (data['title'], data['content'])
         )
 
+        note_id = cur.fetchone()[0]
+
         conn.commit()
+
         cur.close()
         conn.close()
 
-        return jsonify({"status": "created"}), 201
+        return jsonify({
+            "id": note_id,
+            "title": data['title'],
+            "content": data['content']
+        }), 201
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route('/api/health', methods=['GET'])
+def health_check():
+    return jsonify({"status": "healthy"}), 200
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
